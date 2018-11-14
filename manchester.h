@@ -10,7 +10,7 @@
 //https://mchr3k.github.io/arduino-libs-manchester/
 
 
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 1024
 #define MAX_EDGE_LENGTH 5000
 
 //#define DEBUG_POLL
@@ -31,7 +31,7 @@
 
 void isr();
 
-void receive(int pin);
+void receive(uint8_t pin);
 
 int poll_edge_time();
 
