@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include "wifi_credentials.h"
 #include <NTPClient.h>
+#include <WebServer.h>
 #include "manchester.h"
 #include "tfa.h"
 
@@ -13,6 +14,46 @@ unsigned long lastReadingsTime[MAX_CHANNELS];
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
+
+
+WebServer server(80);
+
+
+void handleRoot() {
+    String output = "<html><head></head><body>"
+                    "<table><tr>"
+                    "<th>timestamp</th>"
+                    "<th>sensor type</th>"
+                    "<th>session ID</th>"
+                    "<th>low battery</th>"
+                    "<th>channel</th>"
+                    "<th>Temperature (&deg;C)</th>"
+                    "<th>Humidity (%)</th>"
+                    "</tr>\n";
+
+    for (int i = 0; i < MAX_CHANNELS; i++) {
+        output += "<tr><td>";
+        output += String(lastReadingsTime[i]);
+        output += "</td><td>";
+        output += String(lastReadings[i].sensor_type, HEX);
+        output += "</td><td>";
+        output += String(lastReadings[i].session_id, HEX);
+        output += "</td><td>";
+        output += String(lastReadings[i].battery, BIN);
+        output += "</td><td>";
+        output += String(lastReadings[i].channel);
+        output += "</td><td>";
+        output += String(lastReadings[i].temp_celsius);
+        output += "</td><td>";
+        output += String(lastReadings[i].temp_fahrenheit);
+        output += "</td><td>";
+        output += String(lastReadings[i].humidity);
+        output += "</td></tr>\n";
+    }
+
+    output += "</table></body></html>";
+    server.send(200, "text/html", output);
+}
 
 void setup() {
     Serial.begin(115200);
@@ -33,6 +74,9 @@ void setup() {
 
     timeClient.begin();
 
+    server.on("/", handleRoot);
+    server.begin();
+
     receive(PIN);
     set_clock(976);
 }
@@ -52,13 +96,15 @@ void loop() {
     THPayload data = decode_payload(dataBuff);
     if (data.checksum == data.check_byte) {
         unsigned long t = timeClient.getEpochTime();
-        if (t - lastReadingsTime[data.channel] > 10) {
-            lastReadings[data.channel] = data;
-            lastReadingsTime[data.channel] = t;
+        if (t - lastReadingsTime[data.channel - 1] > 10) {
+            lastReadings[data.channel - 1] = data;
+            lastReadingsTime[data.channel - 1] = t;
 
             Serial.print(timeClient.getFormattedTime());
             Serial.print(": ");
             print_payload(data);
         }
     }
+
+    server.handleClient();
 }

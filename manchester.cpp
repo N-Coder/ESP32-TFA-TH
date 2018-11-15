@@ -28,6 +28,9 @@ void isr() {
     if (writePtr == readPtr) {
         Serial.println("!!! manchester receive buffer overrun !!!");
     }
+    // TODO notify task?
+    // TODO or use a ESP RingBuffer with bytes and vRingbufferGetInfo(uxRead)
+    // https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/system/freertos_additions.html#_CPPv218vRingbufferGetInfo15RingbufHandle_tP11UBaseType_tP11UBaseType_tP11UBaseType_tP11UBaseType_t
 }
 
 void receive(uint8_t pin) {
@@ -180,6 +183,10 @@ byte decode_bit(byte previous) {
 }
 
 int read_bytes(int maxLength, byte *dataBuff) {
+    Serial.print(readPtr);
+    Serial.print("/");
+    Serial.println(writePtr);
+
     dbg_read("Decoding Data...\n");
     int bitCount = 0, byteCount = 0;
     byte bit = get_previous_bit();
