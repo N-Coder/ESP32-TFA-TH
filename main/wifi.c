@@ -54,7 +54,12 @@ void connect_wifi() {
     ESP_LOGI(TAG, "Connecting WiFi...");
 }
 
-void await_wifi() {
-    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT | GOT_IP_BIT, false, true, portMAX_DELAY);
-    ESP_LOGI(TAG, "WiFi Ready!");
+esp_err_t await_wifi(TickType_t xTicksToWait) {
+    EventBits_t bits = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT | GOT_IP_BIT, false, true, portMAX_DELAY);
+    if ((bits & CONNECTED_BIT) > 0 && (bits & GOT_IP_BIT) > 0) {
+        ESP_LOGI(TAG, "WiFi Ready!");
+        return ESP_OK;
+    } else {
+        return ESP_ERR_TIMEOUT;
+    }
 }
