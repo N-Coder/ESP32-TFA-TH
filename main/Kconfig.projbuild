@@ -1,0 +1,14 @@
+# put here your custom config value
+menu "WiFi Client Credentials"
+config ESP_WIFI_SSID
+    string "WiFi SSID"
+    default "myssid"
+    help
+	SSID (network name) for the esp32 to connect to.
+
+config ESP_WIFI_PASSWORD
+    string "WiFi Password"
+    default "mypassword"
+    help
+	WiFi password (WPA or WPA2) for the esp32 to use.
+endmenu
