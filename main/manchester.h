@@ -1,50 +1,31 @@
+#include <driver/gpio.h>
+
 #ifndef ESP32_TFA_TH_MANCHESTER_H
 #define ESP32_TFA_TH_MANCHESTER_H
-
-#include <Arduino.h>
-
 
 //https://github.com/isuruceanu/phedruino
 //https://forum.arduino.cc/index.php?topic=257985.0
 //http://forum.arduino.cc/index.php?topic=181452.0
 //https://mchr3k.github.io/arduino-libs-manchester/
 
-
 #define BUFFER_SIZE 1024
 #define MAX_EDGE_LENGTH 5000
 
-//#define DEBUG_POLL
-//#define DEBUG_READ
-//#define MANCHESTER_YIELD Serial.println("yield");
+typedef char bit_t;
+typedef int64_t timespan_t;
 
+void receive(gpio_num_t pin);
 
-#ifdef DEBUG_READ
-#define dbg_read(s) Serial.print(s)
-#else
-#define dbg_read(s)
-#endif
+timespan_t poll_edge_time();
 
-#ifndef MANCHESTER_YIELD
-#define MANCHESTER_YIELD
-#endif
-
-
-void isr();
-
-void receive(uint8_t pin);
-
-int poll_edge_time();
-
-void set_clock(int val);
+void set_clock(timespan_t val);
 
 bool sync_clock(int samplesCount);
 
-void calibrate_clock();
+bit_t decode_bit(bit_t previous);
 
-byte decode_bit(byte previous);
+bit_t get_previous_bit();
 
-byte get_previous_bit();
-
-int read_bytes(int maxLength, byte *dataBuff);
+size_t read_bytes(size_t maxLength, bit_t *dataBuff);
 
 #endif //ESP32_TFA_TH_MANCHESTER_H

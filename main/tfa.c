@@ -1,20 +1,23 @@
+#include <esp_log.h>
 #include "tfa.h"
 #include "manchester.h"
+
+static const char *TAG = "ESP32-TFA-TH/RF-TFA";
 
 
 // checksum code from BaronVonSchnowzer at
 // http://forum.arduino.cc/index.php?topic=214436.15
-byte checksum(int length, byte *buff) {
-    byte mask = 0x7C;
-    byte checksum = 0x64;
-    byte data;
+char checksum(size_t length, char *buff) {
+    char mask = 0x7C;
+    char checksum = 0x64;
+    char data;
     int byteCnt;
 
     for (byteCnt = 0; byteCnt < length; byteCnt++) {
         int bitCnt;
         data = buff[byteCnt];
         for (bitCnt = 7; bitCnt >= 0; bitCnt--) {
-            byte bit = mask & 1; // Rotate mask right
+            char bit = (char) (mask & 1); // Rotate mask right
             mask = (mask >> 1) | (mask << 7);
             if (bit) {
                 mask ^= 0x18;
@@ -32,9 +35,9 @@ byte checksum(int length, byte *buff) {
 
 bool skip_header_bytes() {
     int bitCount = 0;
-    byte bit = get_previous_bit();
+    char bit = get_previous_bit();
 
-    dbg_read("Decoding Header...\n ");
+    ESP_LOGV(TAG, "Decoding Header...");
     while (true) {
         bit = decode_bit(bit);
         bitCount++;
@@ -47,26 +50,26 @@ bool skip_header_bytes() {
                 // 111111101 or 00001111111111101
                 bit = decode_bit(bit);
                 if (bit == 1) {
-                    dbg_read("  Header complete\n");
+                    ESP_LOGV(TAG, "Header complete");
                     return true;
                 } else {
-                    dbg_read("  Missing header trailing 01\n");
+                    ESP_LOGV(TAG, "Missing header trailing 01");
                     return false;
                 }
             } else {
-                dbg_read("  Too few 1s in header\n");
+                ESP_LOGV(TAG, "Too few 1s in header");
                 return false;
             }
         } else {
-            dbg_read("  Timeout/Desync\n\n\n");
+            ESP_LOGV(TAG, "Timeout/Desync");
             return false;
         }
 
     }
 }
 
-THPayload decode_payload(byte *dataBuff) {
-    THPayload data{};
+THPayload decode_payload(char *dataBuff) {
+    THPayload data;
 
     data.sensor_type = dataBuff[0] & 0xFF;
     data.session_id = dataBuff[1] & 0xFF;
@@ -74,55 +77,27 @@ THPayload decode_payload(byte *dataBuff) {
     data.channel = ((dataBuff[2] & 0b01110000) >> 4) + 1;
     data.temp_raw = ((dataBuff[2] & 0b00001111) << 8) + (dataBuff[3] & 0xFF);
     data.temp_fahrenheit = (data.temp_raw - 400) / 10;
-    data.temp_celsius = (data.temp_raw - 720) * 0.0556;
+    data.temp_celsius = (float) ((data.temp_raw - 720) * 0.0556);
     data.humidity = dataBuff[4] & 0xFF;
-    data.check_byte = dataBuff[5] & 0xFF;
+    data.check_byte = (char) (dataBuff[5] & 0xFF);
     data.checksum = checksum(5, dataBuff);
+    time(&data.timestamp); // this might be a few microseconds back
 
-    return data;
-}
-
-THPayload print_payload(THPayload data) {
     if (!(data.sensor_type == 0x45 || data.sensor_type == 0x46)) {
-        Serial.print("WARN: unknown sensor type ");
-        Serial.print(data.sensor_type);
-        Serial.println(" received");
+        ESP_LOGW(TAG, "unknown sensor type 0x%.2X received", data.sensor_type);
     }
 
     if (data.channel < 1 || data.channel > MAX_CHANNELS) {
-        Serial.print("WARN: illegal channel id ");
-        Serial.print(data.channel);
-        Serial.println(" received");
+        ESP_LOGW(TAG, "illegal channel id %d received", data.channel);
     }
 
     if (data.humidity > 100) {
-        Serial.print("WARN: invalid humidity value ");
-        Serial.print(data.humidity);
-        Serial.println(" received");
+        ESP_LOGW(TAG, "invalid humidity value %d received", data.humidity);
     }
 
     if (data.checksum != data.check_byte) {
-        Serial.print("ERR: got checksum ");
-        Serial.print(data.check_byte, BIN);
-        Serial.print(" but expected ");
-        Serial.println(data.checksum, BIN);
+        ESP_LOGE(TAG, "got checksum 0x%.2X, but expected 0x%.2X", data.check_byte, data.checksum);
     }
 
-    Serial.print("Sensor type: 0x");
-    Serial.print(data.sensor_type, HEX);
-    Serial.print("  Session ID: 0x");
-    Serial.print(data.session_id, HEX);
-    Serial.print("  Low battery: ");
-    Serial.print(data.battery, BIN);
-    Serial.print("  Channel: ");
-    Serial.print(data.channel);
-    Serial.print("  Temperature: ");
-    // Serial.print(temp_raw, BIN);
-    // Serial.print(" RAW / ");
-    Serial.print(data.temp_celsius);
-    Serial.print("°C / ");
-    Serial.print(data.temp_fahrenheit);
-    Serial.print("°F  Humidity: ");
-    Serial.print(data.humidity);
-    Serial.println();
+    return data;
 }

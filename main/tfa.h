@@ -1,8 +1,8 @@
 #ifndef ESP32_TFA_TH_TFA_H
 #define ESP32_TFA_TH_TFA_H
 
-#include <Arduino.h>
-
+#include "manchester.h"
+#include <time.h>
 
 //https://github.com/zwobbl/froggit-read/blob/master/froggitread.c
 //https://forum.pilight.org/showthread.php?tid=3225
@@ -12,7 +12,7 @@
 #define MAX_CHANNELS 8
 #define DATA_BYTES 6
 
-struct THPayload {
+typedef struct {
     int sensor_type;
     int session_id;
     int battery;
@@ -21,17 +21,18 @@ struct THPayload {
     float temp_fahrenheit;
     float temp_celsius;
     int humidity;
-    byte check_byte;
-    byte checksum;
-};
+    char check_byte;
+    char checksum;
+    time_t timestamp;
+} THPayload;
 
+#define THPAYLOAD_FMT "Sensor type: 0x%.2X  Session ID: 0x%.2X  Low battery: %c  Channel: %d  Temperature: %f °C / %f °F  Humidity: %d%%"
+#define THPAYLOAD_FMT_ARGS(data) data.sensor_type, data.session_id, data.battery & 0x01 ? '1' : '0', data.channel, data.temp_celsius, data.temp_fahrenheit, data.humidity
 
-byte checksum(int length, byte *buff);
+char checksum(size_t length, char *buff);
 
 bool skip_header_bytes();
 
-THPayload decode_payload(byte *dataBuff);
-
-THPayload print_payload(THPayload data);
+THPayload decode_payload(char *dataBuff);
 
 #endif //ESP32_TFA_TH_TFA_H
