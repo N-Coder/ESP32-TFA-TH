@@ -1,7 +1,8 @@
-#include <esp_err.h>
-
 #ifndef ESP32_TFA_TEMP_HUM_WIFI_H
 #define ESP32_TFA_TEMP_HUM_WIFI_H
+
+#include <freertos/FreeRTOS.h>
+#include <esp_err.h>
 
 void connect_wifi();
 

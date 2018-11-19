@@ -1,7 +1,7 @@
-#include <esp_err.h>
-
 #ifndef ESP32_TFA_TEMP_HUM_SNTP_H
 #define ESP32_TFA_TEMP_HUM_SNTP_H
+
+#include <esp_err.h>
 
 void init_sntp();
 

@@ -1,5 +1,3 @@
-#include <driver/gpio.h>
-
 #ifndef ESP32_TFA_TH_MANCHESTER_H
 #define ESP32_TFA_TH_MANCHESTER_H
 
@@ -7,6 +5,8 @@
 //https://forum.arduino.cc/index.php?topic=257985.0
 //http://forum.arduino.cc/index.php?topic=181452.0
 //https://mchr3k.github.io/arduino-libs-manchester/
+
+#include <driver/gpio.h>
 
 #define BUFFER_SIZE 1024
 #define MAX_EDGE_LENGTH 5000

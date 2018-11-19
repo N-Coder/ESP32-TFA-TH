@@ -1,13 +1,12 @@
 #ifndef ESP32_TFA_TH_TFA_H
 #define ESP32_TFA_TH_TFA_H
 
-#include "manchester.h"
-#include <time.h>
-
 //https://github.com/zwobbl/froggit-read/blob/master/froggitread.c
 //https://forum.pilight.org/showthread.php?tid=3225
 //https://forum.fhem.de/index.php/topic,65680.90.html
 
+#include "manchester.h"
+#include <time.h>
 
 #define MAX_CHANNELS 8
 #define DATA_BYTES 6
