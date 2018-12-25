@@ -1,10 +1,6 @@
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
-#include <freertos/task.h>
-#include <esp_log.h>
-#include <time.h>
-#include <string.h>
 #include "tasks.h"
+#include <esp_log.h>
+#include <string.h>
 
 THPayload lastReadings[MAX_CHANNELS];
 QueueHandle_t readingsWriteQueue;
@@ -50,15 +46,19 @@ void loop_writer(void *arg) {
 static const char *TAGR = "ESP32-TFA-TH/Reader";
 
 void loop_tfa(void *arg) {
+    ManchesterState *state = arg;
+
     char dataBuff[DATA_BYTES];
     while (true) {
-        if (!skip_header_bytes()) {
+        if (!skip_header_bytes(state)) {
             continue;
         }
-        if (read_bytes(DATA_BYTES, dataBuff) != DATA_BYTES * 8) {
+        // esp_log_level_set("ESP32-TFA-TH/RF-PE", ESP_LOG_VERBOSE);
+        size_t bytes_read = read_bytes(state, DATA_BYTES, dataBuff);
+        // esp_log_level_set("ESP32-TFA-TH/RF-PE", ESP_LOG_DEBUG);
+        if (bytes_read != DATA_BYTES * 8) {
             continue;
         }
-        // TODO consume trailing 0s
 
         THPayload data = decode_payload(dataBuff);
         if (data.checksum == data.check_byte) {
@@ -74,11 +74,11 @@ void loop_tfa(void *arg) {
     }
 }
 
-void start_loops() {
+void start_loops(ManchesterState *state) {
     readingsWriteQueue = xQueueCreate(128, sizeof(THPayload));
     TaskHandle_t xHandle = NULL;
     BaseType_t ret;
-    ret = xTaskCreate(loop_tfa, "loop_tfa", 1024 * 4, NULL, tskIDLE_PRIORITY, &xHandle);
+    ret = xTaskCreate(loop_tfa, "loop_tfa", 1024 * 4, (void *) state, tskIDLE_PRIORITY, &xHandle);
     ESP_ERROR_CHECK(ret == pdTRUE && xHandle != NULL ? ESP_OK : ESP_ERR_NO_MEM);
     ret = xTaskCreate(loop_writer, "loop_writer", 1024 * 4, NULL, tskIDLE_PRIORITY, &xHandle);
     ESP_ERROR_CHECK(ret == pdTRUE && xHandle != NULL ? ESP_OK : ESP_ERR_NO_MEM);

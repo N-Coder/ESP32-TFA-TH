@@ -9,7 +9,6 @@
 #include "tasks.h"
 #include "webserver.h"
 
-#define PIN 0
 static const char *TAG = "ESP32-TFA-TH/Main";
 
 void app_main() {
@@ -23,13 +22,17 @@ void app_main() {
 
     init_sd_card();
 
-    receive(PIN);
-    // sync_clock(10);
-    set_clock(976);
+    ManchesterConfig config = {
+            .gpio_pin = 0,
+            .clock2T=976,
+            .rmt_channel= RMT_CHANNEL_0,
+            .buffer_size= 1024 * 4
+    };
+    esp_log_level_set("ESP32-TFA-TH/RF-PE", ESP_LOG_DEBUG); // also disabled by #define in manchester.c
+    esp_log_level_set("ESP32-TFA-TH/RF-TFA", ESP_LOG_DEBUG); // also disabled by #define in tfa.c
+    ManchesterState *pe_state = manchester_start_receive(&config);
 
-    start_loops();
-    esp_log_level_set("ESP32-TFA-TH/RF-TFA", ESP_LOG_INFO);
-    esp_log_level_set("ESP32-TFA-TH/RF-PE/Bits", ESP_LOG_INFO);
+    start_loops(pe_state);
 
     start_webserver();
 

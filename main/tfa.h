@@ -30,7 +30,7 @@ typedef struct {
 
 char checksum(size_t length, char *buff);
 
-bool skip_header_bytes();
+bool skip_header_bytes(ManchesterState *state);
 
 THPayload decode_payload(char *dataBuff);
 

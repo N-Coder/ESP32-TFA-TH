@@ -1,3 +1,5 @@
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG // also disabled at runtime in main.c
+
 #include <esp_log.h>
 #include "tfa.h"
 #include "manchester.h"
@@ -33,13 +35,13 @@ char checksum(size_t length, char *buff) {
     return checksum;
 }
 
-bool skip_header_bytes() {
+inline bool skip_header_bytes(ManchesterState *state) {
     int bitCount = 0;
-    char bit = get_previous_bit();
+    bit_t bit;
 
     ESP_LOGV(TAG, "Decoding Header...");
     while (true) {
-        bit = decode_bit(bit);
+        bit = read_bit(state);
         bitCount++;
 
         if (bit == 1) {
@@ -48,9 +50,9 @@ bool skip_header_bytes() {
             if (bitCount > 7) {
                 // after at least 7 "1"s we read a "0" and now expect the final "1":
                 // 111111101 or 00001111111111101
-                bit = decode_bit(bit);
+                bit = read_bit(state);
                 if (bit == 1) {
-                    ESP_LOGV(TAG, "Header complete");
+                    ESP_LOGD(TAG, "Header complete");
                     return true;
                 } else {
                     ESP_LOGV(TAG, "Missing header trailing 01");
@@ -61,7 +63,7 @@ bool skip_header_bytes() {
                 return false;
             }
         } else {
-            ESP_LOGV(TAG, "Timeout/Desync");
+            ESP_LOGV(TAG, "Timeout/Desync (%d) after %d header bits", bit, bitCount);
             return false;
         }
 

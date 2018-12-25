@@ -5,6 +5,6 @@
 
 extern THPayload lastReadings[MAX_CHANNELS];
 
-void start_loops();
+void start_loops(ManchesterState *state);
 
 #endif //ESP32_TFA_TEMP_HUM_TASKS_H
