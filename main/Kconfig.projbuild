@@ -1,4 +1,3 @@
-# put here your custom config value
 menu "WiFi Client Credentials"
 config ESP_WIFI_SSID
     string "WiFi SSID"
@@ -11,4 +10,21 @@ config ESP_WIFI_PASSWORD
     default "mypassword"
     help
 	WiFi password (WPA or WPA2) for the esp32 to use.
+endmenu
+
+menu "InfluxDB Write Endpoint Configuration"
+config ESP_INFLUXDB_ENDPOINT
+    string "InfluxDB write Endpoint"
+    default "http://localhost:8086/write?db=thermo&u=esp32&p=mypassword&precision=s"
+    help
+	The InfluxDB HTTP API URL where the write POSTs should be sent to.
+	Make sure to include your measurement name and the precision, which should be 's'.
+	If authentication is enabled, also include the username and password.
+	See: https://docs.influxdata.com/influxdb/v1.7/tools/api/#write-http-endpoint
+
+config ESP_INFLUXDB_MEASUREMENT
+    string "InfluxDB measurement table for the recorded data"
+    default "thermo"
+    help
+	The name of the measurement (aka table) were the recorded sensor data should be stored.
 endmenu
