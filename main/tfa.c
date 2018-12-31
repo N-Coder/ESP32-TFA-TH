@@ -98,7 +98,10 @@ THPayload decode_payload(char *dataBuff) {
     }
 
     if (data.checksum != data.check_byte) {
-        ESP_LOGE(TAG, "got checksum 0x%.2X, but expected 0x%.2X", data.check_byte, data.checksum);
+        ESP_LOGE(TAG, "got checksum 0x%.2X, but expected 0x%.2X in packet "
+                      "0x%.2X 0x%.2X 0x%.2X 0x%.2X 0x%.2X 0x%.2X",
+                 data.check_byte, data.checksum,
+                 dataBuff[0], dataBuff[1], dataBuff[2], dataBuff[3], dataBuff[4], dataBuff[5]);
     }
 
     return data;
