@@ -50,7 +50,7 @@ ManchesterState *manchester_start_receive(ManchesterConfig *config) {
     rmt_rx.channel = config->rmt_channel;
     rmt_rx.gpio_num = config->gpio_pin;
     rmt_rx.clk_div = RMT_CLK_DIV;
-    rmt_rx.mem_block_num = 8; // all 512/64 blocks
+    rmt_rx.mem_block_num = config->rmt_mem_block_num;
     rmt_rx.rmt_mode = RMT_MODE_RX;
     rmt_rx.rx_config.filter_en = true;
     rmt_rx.rx_config.filter_ticks_thresh = 0xFF; // counted in source clock, not divided counter clock: 255 * 1/80 MHz ~= 3µs
@@ -117,7 +117,7 @@ inline pulsevalue_t read_pulsevalue(ManchesterState *state) {
              (IS_PULSE_LONG(value, state->config.clock2T) ? "long" : "invalid"),
              GET_PULSE_LENGTH(value));
 
-    // length = 0 -> incomplete packet or packet end marker: INVALID_BIT_LIMITS
+    // length = 0 -> incomplete packet or packet end marker: INVALID_BIT_LIMITS (too long pulse ended packet)
     // consecutive same level -> pulse in between filtered out: INVALID_BIT_DESYNC // TODO merge or drop?
     // length out of range: INVALID_BIT_LIMITS
     // (unpaired short interval: INVALID_BIT_UNPAIRED)

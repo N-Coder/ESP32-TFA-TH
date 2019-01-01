@@ -48,6 +48,7 @@ typedef struct {
     gpio_num_t gpio_pin;
     int64_t clock2T;
     rmt_channel_t rmt_channel;
+    uint8_t rmt_mem_block_num;
     size_t buffer_size;
     void *user_data;
 

@@ -26,6 +26,7 @@ void app_main() {
             .gpio_pin = 0,
             .clock2T=976,
             .rmt_channel= RMT_CHANNEL_0,
+            .rmt_mem_block_num= 8, // all 512/64 blocks
             .buffer_size= 1024 * 4
     };
     esp_log_level_set("ESP32-TFA-TH/RF-PE", ESP_LOG_DEBUG); // also disabled by #define in manchester.c
