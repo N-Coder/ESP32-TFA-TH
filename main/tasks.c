@@ -1,8 +1,9 @@
 #include "tasks.h"
+#include "wifi.h"
 #include <esp_log.h>
 #include <string.h>
 #include <esp_http_client.h>
-#include <sys/unistd.h>
+#include <unistd.h>
 
 THPayload lastReadings[MAX_CHANNELS];
 QueueHandle_t readingsWriteQueue;
@@ -11,6 +12,10 @@ QueueHandle_t influxdbSendQueue;
 static const char *TAGR = "ESP32-TFA-TH/Reader";
 static const char *TAGW = "ESP32-TFA-TH/Writer";
 static const char *TAGI = "ESP32-TFA-TH/InfluxDB";
+
+#define INFLUX_BUFFER_FILE "/sdcard/INFLXBUF.txt"
+#define POST_DATA_SIZE 1024 + 128
+#define POST_DATA_FREE(len) POST_DATA_SIZE - len
 
 #define ESP_PDCHECK(ret, err) do {ESP_ERROR_CHECK((ret) != pdTRUE ? err : ESP_OK)} while(0);
 // TODO use generic PD_ERRORCHECK macro
@@ -85,16 +90,16 @@ void loop_tfa(void *arg) {
     vTaskDelete(NULL);
 }
 
-#define max_len sizeof(post_data) - len
 
 size_t fill_influx_write_buffer(char *post_data, size_t len) {
     THPayload sample;
-    while (max_len > 128) {
-        if (xQueuePeek(influxdbSendQueue, &sample, len > 0 ? 10000 / portTICK_PERIOD_MS : portMAX_DELAY) != pdTRUE) {
+    while (POST_DATA_FREE(len) > 128) {
+        if (xQueuePeek(influxdbSendQueue, &sample, len > 0 ? 10 * 1000 / portTICK_PERIOD_MS : portMAX_DELAY) !=
+            pdTRUE) {
             break;
         }
         int written = snprintf(
-                post_data + len, max_len,
+                post_data + len, POST_DATA_FREE(len),
                 CONFIG_ESP_INFLUXDB_MEASUREMENT ","
                 "channel=%d,session=0x%.2X,sensor=0x%.2X "
                 "humidity=%di,temp_celsius=%f,low_battery=%s "
@@ -103,7 +108,7 @@ size_t fill_influx_write_buffer(char *post_data, size_t len) {
                 sample.humidity, sample.temp_celsius,
                 sample.battery & 0x01 ? "TRUE" : "FALSE",
                 sample.timestamp);
-        if (written >= max_len) {
+        if (written >= POST_DATA_FREE(len)) {
             break;
         } else {
             ESP_PDCHECK(xQueueReceive(influxdbSendQueue, &sample, 0), ESP_ERR_INVALID_STATE);
@@ -130,9 +135,10 @@ bool send_influx_write(esp_http_client_handle_t client, char *post_data, size_t 
     return false;
 }
 
+#include "influx_offline_buffer.h"
 
 void loop_influx_sender(void *arg) {
-    char post_data[1024 + 128];
+    char post_data[POST_DATA_SIZE];
     size_t len = 0;
 
     esp_http_client_config_t config = {
@@ -147,19 +153,23 @@ void loop_influx_sender(void *arg) {
     while (true) {
         len = fill_influx_write_buffer(post_data, len);
         ESP_ERROR_CHECK(len > 0 ? ESP_OK : ESP_ERR_INVALID_STATE);
-        if (send_influx_write(client, post_data, len)) {
-            post_data[0] = 0;
+
+        bool send_success = false;
+        esp_err_t wifi_state = ensure_wifi(10 * 1000 / portTICK_PERIOD_MS);
+        if (wifi_state == ESP_OK) {
+            send_success = send_influx_write(client, post_data, len);
+        } else {
+            ESP_LOGI(TAGI, "InfluxDB Writer HTTP Client timed out waiting for WiFi: %s (%d)",
+                     esp_err_to_name(wifi_state), wifi_state);
+        }
+
+        if (send_success) {
+            send_influx_offline_buffer(client, post_data);
             len = 0;
-        } else if (max_len < 128 && uxQueueSpacesAvailable(influxdbSendQueue) < 24) {
+        } else if (POST_DATA_FREE(len) < 128 && uxQueueSpacesAvailable(influxdbSendQueue) < 24) {
             // the queue is close to full, we collected a lot of lines in our POST buffer, but we couldn't send them via HTTP
             // so store the data on SD card until network is available again
-
-            FILE *dump = fopen("/sdcard/INFLXBUF.txt", "a");
-            fputs(post_data, dump);
-            fclose(dump);
-
-            ESP_LOGD(TAGI, "Put %d bytes of data destined to InfluxDB on SD card for interim storage", len);
-            post_data[0] = 0;
+            store_influx_offline_buffer(post_data, len);
             len = 0;
         }
     }
