@@ -21,6 +21,7 @@ void app_main() {
     ESP_ERROR_CHECK(await_sntp_sync(60));
 
     init_sd_card();
+    ESP_ERROR_CHECK(ensure_sd_available(portMAX_DELAY));
 
     ManchesterConfig config = {
             .gpio_pin = 0,

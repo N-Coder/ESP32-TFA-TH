@@ -8,4 +8,6 @@
 
 void init_sd_card();
 
+esp_err_t ensure_sd_available(TickType_t timeout_ticks);
+
 #endif //ESP32_TFA_TEMP_HUM_SD_CARD_H
