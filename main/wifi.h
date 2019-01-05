@@ -4,9 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <esp_err.h>
 
-void connect_wifi();
-
-esp_err_t await_wifi(TickType_t xTicksToWait);
+void init_wifi();
 
 esp_err_t ensure_wifi(TickType_t xTicksToWait);
 

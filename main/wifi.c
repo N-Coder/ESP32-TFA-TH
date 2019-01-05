@@ -27,6 +27,7 @@ esp_err_t event_handler(void *ctx, system_event_t *event) {
         xEventGroupSetBits(wifi_event_group, GOT_IP_BIT);
         esp_log_level_set("phy_init", ESP_LOG_INFO);
     } else if (event->event_id == SYSTEM_EVENT_STA_DISCONNECTED) {
+        // https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/wifi.html#wi-fi-reason-code (wifi_err_reason_t)
         ESP_LOGI(TAG, "Lost WiFi connection to %s (%d), reconnecting...",
                  event->event_info.disconnected.ssid, event->event_info.disconnected.reason);
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT | GOT_IP_BIT);
@@ -41,7 +42,7 @@ esp_err_t event_handler(void *ctx, system_event_t *event) {
     return ESP_OK;
 }
 
-void connect_wifi() {
+void init_wifi() {
     ESP_ERROR_CHECK(nvs_flash_init());
     tcpip_adapter_init();
 
@@ -63,20 +64,6 @@ void connect_wifi() {
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "Connecting WiFi...");
 }
-
-esp_err_t await_wifi(TickType_t xTicksToWait) {
-    EventBits_t bits = xEventGroupWaitBits(wifi_event_group, READY_BIT | CONNECTED_BIT | GOT_IP_BIT,
-                                           false, true, xTicksToWait);
-    if ((bits & READY_BIT) != 0 && (bits & CONNECTED_BIT) != 0 && (bits & GOT_IP_BIT) != 0) {
-        wifi_ap_record_t wifiInfo;
-        ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifiInfo))
-        ESP_LOGI(TAG, "WiFi connection to %s ready!", wifiInfo.ssid);
-        return ESP_OK;
-    } else {
-        return ESP_ERR_TIMEOUT;
-    }
-}
-
 
 esp_err_t ensure_wifi(TickType_t xTicksToWait) {
     EventBits_t bits;
