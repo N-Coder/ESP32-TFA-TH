@@ -4,6 +4,7 @@
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <esp_event_loop.h>
+#include <mdns.h>
 
 
 static const char *TAG = "ESP32-TFA-TH/WiFi";
@@ -39,6 +40,7 @@ esp_err_t event_handler(void *ctx, system_event_t *event) {
     } else {
         ESP_LOGE(TAG, "Unknown Wifi Event %d", event->event_id);
     }
+    ESP_ERROR_CHECK(mdns_handle_system_event(ctx, event));
     return ESP_OK;
 }
 
@@ -47,6 +49,10 @@ void init_wifi() {
     tcpip_adapter_init();
 
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+
+    ESP_ERROR_CHECK(mdns_init());
+    ESP_ERROR_CHECK(mdns_hostname_set("esp32-tfa"));
+    ESP_ERROR_CHECK(mdns_instance_name_set("ESP32 - TFA Temperature Humidity Sensor 433MHz Data Receiver"));
 
     wifi_event_group = xEventGroupCreate();
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
