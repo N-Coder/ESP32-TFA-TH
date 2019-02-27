@@ -7,7 +7,7 @@
 #include "tasks.h"
 
 static const char *TAG = "ESP32-TFA-TH/HTTP";
-
+static time_t start_timestamp;
 char http_resp[2048];
 
 esp_err_t current_html_get_handler(httpd_req_t *req) {
@@ -37,7 +37,10 @@ esp_err_t current_html_get_handler(httpd_req_t *req) {
                                                "<td>%d</td>"
                                                "</tr>\n", THPAYLOAD_FMT_ARGS(lastReadings[i]));
     }
-    strcat(http_resp, "</table></body></html>");
+    strcat(http_resp, "</table>Running since: ");
+    localtime_r(&start_timestamp, &timeinfo);
+    strftime(http_resp + strlen(http_resp), sizeof(http_resp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    strcat(http_resp, "</body></html>");
 
     httpd_resp_set_type(req, "text/html");
     httpd_resp_send(req, http_resp, strlen(http_resp));
@@ -211,6 +214,7 @@ httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
+    time(&start_timestamp);
 
     tcpip_adapter_ip_info_t ipInfo;
     tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
