@@ -19,6 +19,13 @@ esp_vfs_fat_sdmmc_mount_config_t mount_config = {
 
 sdmmc_card_t *s_card = NULL;
 
+void set_sdmmc_log_level(esp_log_level_t level) {
+    // esp_log_level_set("vfs_fat", level);
+    esp_log_level_set("sdmmc_cmd", level);
+    esp_log_level_set("sdspi_host", level);
+    esp_log_level_set("sdspi_transaction", level);
+}
+
 void init_sd_card() {
     host_config.slot = VSPI_HOST;
     host_config.max_freq_khz -= 1; // "spi_master: SPI2: New device added to CS0, effective clock: 400kHz"
@@ -40,6 +47,7 @@ esp_err_t ensure_sd_available(TickType_t timeout_ticks) {
         err = sdmmc_init_cid(s_card);
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "SD Card removed, unmounting and waiting for remount: %s (%d)", esp_err_to_name(err), err);
+            set_sdmmc_log_level(ESP_LOG_VERBOSE);
             esp_vfs_fat_sdmmc_unmount();
             s_card = NULL;
         }
@@ -54,6 +62,7 @@ esp_err_t ensure_sd_available(TickType_t timeout_ticks) {
         if (err == ESP_OK) {
             ESP_LOGI(TAG, "SD Card mounted!");
             sdmmc_card_print_info(stdout, s_card);
+            set_sdmmc_log_level(ESP_LOG_INFO);
             break;
         } else {
             vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(1000));
