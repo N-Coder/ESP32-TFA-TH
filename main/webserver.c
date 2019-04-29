@@ -210,6 +210,14 @@ httpd_uri_t sd_file_options = {
         .user_ctx = "GET, OPTIONS, HEAD"
 };
 
+void set_httpd_log_level(esp_log_level_t level) {
+    esp_log_level_set("httpd", level);
+    esp_log_level_set("httpd_parse", level);
+    esp_log_level_set("httpd_sess", level);
+    esp_log_level_set("httpd_txrx", level);
+    esp_log_level_set("httpd_uri", level);
+}
+
 httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -229,5 +237,6 @@ httpd_handle_t start_webserver(void) {
     httpd_register_uri_handler(server, &sd_file);
     httpd_register_uri_handler(server, &sd_file_head);
     httpd_register_uri_handler(server, &sd_file_options);
+    set_httpd_log_level(ESP_LOG_INFO);
     return server;
 }

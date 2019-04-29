@@ -149,6 +149,7 @@ void loop_influx_sender(void *arg) {
             //.auth_type = HTTP_AUTH_TYPE_BASIC,
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_log_level_set("HTTP_CLIENT", ESP_LOG_INFO);
 
     while (true) {
         len = fill_influx_write_buffer(post_data, len);
