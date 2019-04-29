@@ -26,7 +26,7 @@ esp_err_t await_sntp_sync(const int timeout_seconds) {
     char strftime_buf[64];
     //setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0", 1);
     //tzset();
-    localtime_r(&now, &timeinfo);
+    //localtime_r(&now, &timeinfo);
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
     ESP_LOGI(TAG, "The current date/time is: %s", strftime_buf);
 
