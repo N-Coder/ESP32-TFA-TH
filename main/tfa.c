@@ -2,7 +2,6 @@
 
 #include <esp_log.h>
 #include "tfa.h"
-#include "manchester.h"
 
 static const char *TAG = "ESP32-TFA-TH/RF-TFA";
 

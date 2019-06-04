@@ -10,9 +10,6 @@
 //https://www.mikrocontroller.net/topic/320249#3768074
 //http://www.mantech.co.za/ProductInfo.aspx?Item=15M0436
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
-#include <freertos/task.h>
 #include <driver/gpio.h>
 #include <driver/timer.h>
 #include <driver/rmt.h>
@@ -50,8 +47,6 @@ typedef struct {
     rmt_channel_t rmt_channel;
     uint8_t rmt_mem_block_num;
     size_t buffer_size;
-    void *user_data;
-
 } ManchesterConfig;
 
 typedef struct {

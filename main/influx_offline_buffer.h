@@ -1,58 +1,85 @@
-void store_influx_offline_buffer(char *post_data, size_t len) {
+#include <unistd.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+long get_influx_offline_buffer_length() {
+    FILE *dump = fopen(INFLUX_BUFFER_FILE, "r");
+    if (dump) {
+        fseek(dump, 0, SEEK_END);
+        long size = ftell(dump);
+        fclose(dump);
+        return size;
+    } else {
+        return -1;
+    }
+}
+
+void store_influx_offline_buffer(InfluxSenderState *state) {
     FILE *dump = fopen(INFLUX_BUFFER_FILE, "a");
-    fputs(post_data, dump);
+    // TODO use ensure_sd_card_available
+    fputs(state->post_data, dump);
     fclose(dump);
-    ESP_LOGD(TAGI, "Wrote %d bytes of data destined to InfluxDB to file %s for interim storage", len,
+    ESP_LOGD(TAG, "Wrote %d bytes of data destined to InfluxDB to file %s for interim storage", state->post_data_len,
              INFLUX_BUFFER_FILE);
 }
 
-void send_influx_offline_buffer(esp_http_client_handle_t client, char *post_data) {
+void send_influx_offline_buffer(InfluxSenderState *state) {
+    state->post_data_len = 0;
     FILE *dump = fopen(INFLUX_BUFFER_FILE, "r");
-    size_t len = 0;
-    bool send_success;
+    esp_err_t send_success;
 
     if (dump) {
-        ESP_LOGD(TAGI, "Connectivity restored, flushing stored data from file %s to InfluxDB", INFLUX_BUFFER_FILE);
+        ESP_LOGD(TAG, "Connectivity restored, flushing stored data from file %s to InfluxDB", INFLUX_BUFFER_FILE);
     }
     while (dump) {
-        ESP_LOGV(TAGI, "Filling HTTP post buffer from file.");
-        while (POST_DATA_FREE(len) > 128) {
-            if (fgets(post_data + len, POST_DATA_FREE(len), dump) == NULL) {
-                ESP_LOGV(TAGI, "Read last line, closing file.");
+        ESP_LOGV(TAG, "Filling HTTP post buffer from file.");
+        while (POST_DATA_FREE(state) > 128) {
+            if (fgets(POST_DATA_OFFSET(state), POST_DATA_FREE(state), dump) == NULL) {
+                ESP_LOGV(TAG, "Read last line, closing file.");
                 fclose(dump);
                 dump = NULL;
                 break;
             }
-            len = strlen(post_data);
-            ESP_LOGV(TAGI, "Buffer contains %d bytes after reading a new line (%d still free).", len,
-                     POST_DATA_FREE(len));
+            state->post_data_len = strlen(state->post_data);
+            ESP_LOGV(TAG, "Buffer contains %d bytes after reading a new line (%d still free).",
+                     state->post_data_len, POST_DATA_FREE(state));
         }
-        ESP_LOGD(TAGI, "Finished reading, buffer contains %d bytes (%d still free).", len, POST_DATA_FREE(len));
+        ESP_LOGD(TAG, "Finished reading, buffer contains %d bytes (%d still free).",
+                 state->post_data_len, POST_DATA_FREE(state));
 
-        char *term_nl = strrchr(post_data, '\n');
+        char *term_nl = strrchr(state->post_data, '\n');
         if (term_nl != NULL && *(term_nl + 1) != 0) {
             // last newline is not right before terminator, so we have a dangling half-read line we need to unread
-            size_t newlen = term_nl - post_data + 1;
-            ESP_LOGV(TAGI, "Buffer contains %d characters, but last newline is at %d. "
-                           "Seeking back in file by %d characters, and continuing with buffer length %d.",
-                     len, (term_nl - post_data), (newlen - len), newlen);
-            fseek(dump, (long) (newlen - len), SEEK_CUR);
-            len = newlen;
+            size_t newlen = term_nl - state->post_data + 1;
+            ESP_LOGV(TAG, "Buffer contains %d characters, but last newline is at %d. "
+                          "Seeking back in file by %d characters, and continuing with buffer length %d.",
+                     state->post_data_len, (term_nl - state->post_data), (newlen - state->post_data_len), newlen);
+            fseek(dump, (long) (newlen - state->post_data_len), SEEK_CUR);
+            state->post_data_len = newlen;
         }
-
-        send_success = send_influx_write(client, post_data, len);
-        len = 0;
-        if (!send_success) {
-            ESP_LOGD(TAGI, "Connection broke again, restart sending the offline buffer later.");
+        if (state->post_data_len > 0) {
+            send_success = send_influx_write(state);
+            state->post_data_len = 0;
+        } else {
+            send_success = ESP_OK;
+        }
+        if (send_success != ESP_OK) {
+            ESP_LOGD(TAG, "Connection broke again, restart sending the offline buffer later.");
             break;
         } else if (dump == NULL) {
             // fgets reached the end and closed the file, so delete after successfully sending
-            ESP_LOGD(TAGI, "Whole offline buffer successfully sent. Deleting file.");
+            ESP_LOGD(TAG, "Whole offline buffer successfully sent. Deleting file.");
             unlink(INFLUX_BUFFER_FILE);
             break;
         } else {
-            ESP_LOGD(TAGI, "Part of offline buffer successfully sent, continuing with next part.");
+            ESP_LOGD(TAG, "Part of offline buffer successfully sent, continuing with next part.");
+            taskYIELD();
             continue;
         }
+    }
+    if (dump) {
+        fclose(dump);
+        dump = NULL;
     }
 }

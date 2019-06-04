@@ -42,3 +42,5 @@ expected_data.extend(open(ctypes.c_char_p.in_dll(influx_offline_buffer, "INFLUX_
 influx_offline_buffer.send_influx_offline_buffer(None, post_data)
 
 print(actual_data == expected_data)
+
+# TODO test send_success = False, no sending of empty buffer, file handle leaks

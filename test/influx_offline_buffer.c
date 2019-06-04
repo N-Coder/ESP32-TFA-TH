@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
+// FIXME update
 
 typedef void *esp_http_client_handle_t;
 #define ESP_LOGD(tag, format, ...) printf ("%s - " format "\n", tag, ## __VA_ARGS__)
@@ -10,7 +7,7 @@ typedef void *esp_http_client_handle_t;
 const size_t POST_DATA_SIZE = 1024;
 #define POST_DATA_FREE(len) POST_DATA_SIZE - len
 const char *INFLUX_BUFFER_FILE = "INFLXBUF.txt";
-const char *TAGI = "ESP32-TFA-TH/InfluxDB";
+const char *TAG = "ESP32-TFA-TH/InfluxDB";
 
 bool (*send_influx_write_ptr)(esp_http_client_handle_t client, char *post_data, size_t len);
 

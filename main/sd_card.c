@@ -1,11 +1,16 @@
+#include <sdmmc_cmd.h>
+#include <freertos/task.h>
 #include <driver/sdmmc_defs.h>
 #include <driver/sdmmc_host.h>
+#include <soc/sdmmc_struct.h>
 #include <driver/sdspi_host.h>
 #include <esp_vfs_fat.h>
-#include <sdmmc_cmd.h>
-#include <sdmmc/sdmmc_common.h>
 
 #include "sd_card.h"
+
+
+//#include <sdmmc/sdmmc_common.h>
+esp_err_t sdmmc_init_cid(sdmmc_card_t *card);
 
 static const char *TAG = "ESP32-TFA-TH/SD";
 
