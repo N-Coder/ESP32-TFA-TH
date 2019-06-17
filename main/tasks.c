@@ -19,17 +19,15 @@ void loop_task_reader(void *arg) {
         }
 
         THPayload data = decode_payload(dataBuff);
-        if (data.checksum == data.check_byte) {
-            if (data.timestamp - state->lastReadings[data.channel - 1].timestamp > 10) {
-                state->lastReadings[data.channel - 1] = data;
-                for (int i = 0; i < state->runningTaskCount; i++) {
-                    if (xQueueSend(state->runningTasks[i].queue, &data, 0) != pdTRUE) {
-                        ESP_LOGE(TAG, "!!! TFA received reading / %s buffer overrun !!!", state->runningTasks[i].name);
-                    }
+        if (data.valid && (data.timestamp - state->lastReadings[data.channel - 1].timestamp) > 10) {
+            state->lastReadings[data.channel - 1] = data;
+            for (int i = 0; i < state->runningTaskCount; i++) {
+                if (xQueueSend(state->runningTasks[i].queue, &data, 0) != pdTRUE) {
+                    ESP_LOGE(TAG, "!!! TFA received reading / %s buffer overrun !!!", state->runningTasks[i].name);
                 }
-                ESP_LOGI(TAG, THPAYLOAD_FMT, THPAYLOAD_FMT_ARGS(data));
-                ESP_ERROR_CHECK(ESP_OK);
             }
+            ESP_LOGI(TAG, THPAYLOAD_FMT, THPAYLOAD_FMT_ARGS(data));
+            ESP_ERROR_CHECK(ESP_OK);
         }
     }
 }

@@ -23,6 +23,7 @@ typedef struct {
     char check_byte;
     char checksum;
     time_t timestamp;
+    bool valid;
 } THPayload;
 
 #define THPAYLOAD_FMT "Sensor type: 0x%.2X  Session ID: 0x%.2X  Low battery: %c  Channel: %d  Temperature: %f °C / %f °F  Humidity: %d%%"

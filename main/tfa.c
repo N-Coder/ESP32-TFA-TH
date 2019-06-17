@@ -83,17 +83,21 @@ THPayload decode_payload(char *dataBuff) {
     data.check_byte = (char) (dataBuff[5] & 0xFF);
     data.checksum = checksum(5, dataBuff);
     time(&data.timestamp); // this might be a few microseconds back
+    data.valid = true;
 
     if (!(data.sensor_type == 0x45 || data.sensor_type == 0x46)) {
         ESP_LOGW(TAG, "unknown sensor type 0x%.2X received", data.sensor_type);
+        data.valid = false;
     }
 
-    if (data.channel < 1 || data.channel > MAX_CHANNELS) {
+    if (1 > data.channel || data.channel > MAX_CHANNELS) {
         ESP_LOGW(TAG, "illegal channel id %d received", data.channel);
+        data.valid = false;
     }
 
-    if (data.humidity > 100) {
+    if (0 > data.humidity || data.humidity > 100) {
         ESP_LOGW(TAG, "invalid humidity value %d received", data.humidity);
+        data.valid = false;
     }
 
     if (data.checksum != data.check_byte) {
@@ -101,6 +105,7 @@ THPayload decode_payload(char *dataBuff) {
                       "0x%.2X 0x%.2X 0x%.2X 0x%.2X 0x%.2X 0x%.2X",
                  data.check_byte, data.checksum,
                  dataBuff[0], dataBuff[1], dataBuff[2], dataBuff[3], dataBuff[4], dataBuff[5]);
+        data.valid = false;
     }
 
     return data;
