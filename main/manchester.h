@@ -14,6 +14,7 @@
 #include <driver/timer.h>
 #include <driver/rmt.h>
 #include <esp_timer.h>
+#include <limits.h>
 
 typedef char bit_t;
 typedef uint16_t pulsevalue_t;
