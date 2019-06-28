@@ -55,7 +55,9 @@ esp_err_t send_influx_write(InfluxSenderState *state) {
             return ESP_ERR_HTTP_BASE + status;
         }
     } else {
-        ESP_LOGE(TAG, "HTTP client failed to perfom: %s 0x%x(%d)", esp_err_to_name(err), err, err);
+        ESP_LOGE(TAG, "HTTP client failed to perform, force-closing connection: %s 0x%x(%d)", esp_err_to_name(err), err,
+                 err);
+        esp_http_client_close(client);
         return err;
     }
 }
